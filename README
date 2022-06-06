@@ -1,0 +1,17 @@
+In Simulation/ :
+
+Simu_COMMON_PARS_SCANG.R, Simu_COMMON_PARS.R: Setting of common parameters for simulation.
+DATED/: R code for using DATED method to analysis the simulated data.
+DC/: R code for using DC method to analysis the simulated data.
+SCANG/: R code for using SCANG method to analysis the simulated data.
+Plot/: R code for visualising the simulation results.
+
+
+In Data_analysis/ :
+
+Data_DC.R, Data_DATED, Data_SCANG: R code for using DC,DATED and SCANG method to analysis the real data.
+Data_result_process.R: R code for visualise the data analysis results.
+
+In R_Func/ :
+
+This directory stores the functions for applying DATED, DC and SCANG method.
