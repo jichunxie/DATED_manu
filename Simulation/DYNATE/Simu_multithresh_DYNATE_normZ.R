@@ -12,7 +12,7 @@ library(tidyverse)
 library(reshape2)
 library(pracma)
 set.seed(123)
-source("../R_Func/DATED_Func.R")
+source("../R_Func/DYNATE_Func.R")
 source("../R_Func/SPA_functions.R")
 source("Simu_COMMON_PARS.R")
 

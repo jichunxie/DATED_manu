@@ -1,6 +1,7 @@
 
 rm(list=ls())
 
+#SATET: avg discovered layer, median length
 
 library(foreach)
 library(doParallel)
@@ -9,10 +10,14 @@ library(data.table)
 library(tidyverse)
 library(reshape2)
 
-source("../R_Func/DATED_Func.R")
-
+source("R_Func/DYNATE_Func.R")
 load("Results/Dataanalysis_SATET_filter_multithresh_new.RData")
+#out1n <- out1;out2n <- out2
+
+#load("Results/Dataanalysis_SATET_multithresh.RData")
 load("Data/ALS_Preprocessed_Data_Euro_Sample.RData")
+
+#check <- analysis_Euro_dt%>%dplyr::select(c("Sample.Type",""))
 
 snp_dat <- analysis_Euro_dt%>%dplyr::rename(Sample.Name=ID)
 
@@ -21,7 +26,8 @@ snp_dat <- snp_dat%>%group_by(domainID)%>%
   ungroup()%>%
   filter(len>=5)%>%
   arrange(loc_adj)%>%
-  mutate(snpID0=snpID,snpID=rleid(loc_adj),Sample.Type=as.character(Sample.Type))%>%
+  mutate(snpID0=snpID,snpID=rleid(loc_adj),
+         Sample.Type=as.character(Sample.Type))%>%
   arrange(-desc(Sample.Type),Sample.Name)%>%
   mutate(Sample.ID=rleid(Sample.Name)-1)
 
@@ -52,7 +58,7 @@ snp_loc <- snp_dat3%>%dplyr::select(c("snpID","loc_adj","chr"))%>%
   mutate(chr=factor(chr,levels=paste0("chr",1:23)))%>%
   arrange(loc_adj)%>%mutate(snp_name2=seq(n()))
 
-method1="DATED-FL";method2="DATED-SS"
+method1="DYNATE-FL";method2="DYNATE-SS"
 tvi_max=7;L_max=5
 out_satet <- out1%>%mutate("Method"=method1)%>%
   bind_rows(out2%>%mutate("Method"=method2))%>%
@@ -99,13 +105,19 @@ Odds_ratio_region <- function(var,var.name,reg,Rej){
 
 tvi_max=14
 L_max=5
-
-
-
-
-SATET_analysis <- function(tvi_max=14,L_max=5){
-  if(tvi_max>7){method1="SATET_MT (FL)";method2="SATET_MT (SS)"}else{
-    method1="DATED-FL";method2="DATED-SS"
+if(tvi_max>7){method1="DYNATE_MT (FL)";method2="DYNATE_MT (SS)"}else{
+  method1="DYNATE-FL";method2="DYNATE-SS"
+}
+# for output cvs leaf info
+satet_leafinfo <- out1%>%mutate("Method"=method1)%>%
+  bind_rows(out2%>%mutate("Method"=method2))%>%
+  dplyr::select(c("domainID","L0","Method","pvals1"))%>%
+  distinct_all()
+  
+#### DYNATE function
+DYNATE_analysis <- function(tvi_max=14,L_max=5){
+  if(tvi_max>7){method1="DYNATE_MT (FL)";method2="DYNATE_MT (SS)"}else{
+    method1="DYNATE-FL";method2="DYNATE-SS"
   }
   out_satet <- out1%>%mutate("Method"=method1)%>%
     bind_rows(out2%>%mutate("Method"=method2))%>%
@@ -188,7 +200,7 @@ SATET_analysis <- function(tvi_max=14,L_max=5){
 }
 
 
-satet7 <- SATET_analysis(7,L_max=5)
+satet7 <- DYNATE_analysis(7,L_max=5)
 Rej_satet.region1=satet7$region
 Rej_satet.dc1=satet7$dc
 Rej_satet.gene1=satet7$gene
@@ -301,7 +313,7 @@ Rej.dc <- Rej.dc%>%
   mutate(ORCI=ORs,OR=str_split(ORs,"[(]",simplify=TRUE)[,1])%>%
   mutate(OR=as.numeric(OR))
 
-nam <- c("DATED-FL","DATED-SS","SCANG-O","SCANG-S","SCANG-B")
+nam <- c("DYNATE-FL","DYNATE-SS","SCANG-O","SCANG-S","SCANG-B")
 Region <- Rej_satet.region1%>%bind_rows(Rej.region)%>%mutate(Measure="Region")
 Domain <- Rej_satet.dc1%>%bind_rows(Rej.dc)%>%mutate(Measure="Domain")
 Gene <- Rej_satet.gene1%>%bind_rows(Rej.gene)%>%mutate(Measure="Gene")
@@ -391,8 +403,7 @@ see=Domain%>%dplyr::select(-c("benign","possibly",
                                        "TARDBP:-:-_2"),"DC-SS",NA))%>%
   mutate("DC-FL"=ifelse(domain%in% c("SOD1:238186:238186_0",
                                        "TARDBP:-:-_2"),"DC-FL",NA))%>%
-  unite(col="Methods","DATED-SS","DATED-FL",
-        #"SATET_MT (SS)","SATET_MT (FL)",
+  unite(col="Methods","DYNATE-SS","DYNATE-FL",
         "SCANG-S","SCANG-B","SCANG-O","DC-SS","DC-FL",sep=",",na.rm =TRUE)
 write.csv(see,"Results/Data-Domain.csv")
 
@@ -406,7 +417,7 @@ see2=Domain%>%dplyr::select(-c("benign","possibly",
                                        "TARDBP:-:-_2"),"DC-SS",NA))%>%
   mutate("DC-FL"=ifelse(domain%in% c("SOD1:238186:238186_0",
                                        "TARDBP:-:-_2"),"DC-FL",NA))%>%
-  unite(col="Methods","DATED-SS","DATED-FL",
+  unite(col="Methods","DYNATE-SS","DYNATE-FL",
         "DC-SS","DC-FL",sep=",",na.rm =TRUE)%>%
   filter(Methods!="")%>%
   dplyr::select(c("domain","ORCI","Methods"))%>%
@@ -486,9 +497,13 @@ p=ggplot(Se,aes(x=start,y=yaxis))+
                      breaks = c(1:7),labels =  unique(Se0$Method),
                      sec.axis = sec_axis(~.*1, name="log(OR)"))+
   scale_x_continuous(breaks = seq(25, 300000, 50))+
-  xlab("RV Location ID")+theme_classic()+labs(fill="Domain",color="Domain")+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-        strip.text.x = element_text(angle = 45))
+  xlab("")+
+  #xlab("RV Location ID")+
+  theme_classic()+labs(fill="Domain",color="Domain")+
+  theme(axis.text.x = element_blank(),
+       strip.text.x = element_blank())
+  #theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  #      strip.text.x = element_text(angle = 45))
 
 
 
@@ -529,11 +544,41 @@ hist(ctrl$number,probability=TRUE)
 # freq plot for pts with EGP5 (bar plot)
 # freq plot for pts without EPG5  (0 vs 1,2,...), exclude SOD1 TRDP5?
 
+
+samp <- snp_dat3%>%
+  filter(domain%in%c("SOD1:238186:238186_0","TARDBP:-:-_2"))%>%
+  dplyr::select(c("Sample.Name"))%>%distinct_all()
+samp <- as.character(samp$Sample.Name)
+
+data2 <- out_satet%>%
+  filter(Method=="DYNATE-FL")%>%
+  dplyr::select(c("snpID","Region"))%>%
+  distinct_all()%>%full_join(snp_dat3,by="snpID")%>%
+  filter(!Sample.Name%in%samp)%>%
+  dplyr::select(c("snpID","domain","Variant.ID",
+                  "Sample.Name","loc_adj","Variant.Type",
+                  "Genotype","Sample.Type","Region"))%>%
+  ungroup()%>%
+  mutate(epg5=ifelse(domain=="EPG5:-:-_0"&!is.na(Region),1,0))%>%
+  group_by(Sample.Name,Sample.Type)%>%
+  summarize(count=sum(epg5))%>%ungroup()%>%
+  group_by(Sample.Type,count)%>%
+  summarize(Sample.count=n())%>%
+  ungroup()%>%group_by(Sample.Type)%>%
+  mutate(Total.count=sum(Sample.count))%>%
+  mutate(Sample.prop=Sample.count/Total.count)%>%
+  ungroup()%>%add_row(Sample.Type="case",count=2,Sample.count=0,Sample.prop=0)
+
+
+
+#### only consider samples with mutations in detected region
+
 data1 <- out_satet%>%dplyr::select(c("snpID"))%>%
   distinct_all()%>%left_join(snp_dat3,by="snpID")%>%
   #filter(!domain%in%c("SOD1:238186:238186_0","TARDBP:−:−_2"))%>%
   dplyr::select(c("snpID","domain","Variant.ID",
-                  "Sample.Name","loc_adj","Variant.Type","Genotype","Sample.Type"))%>%
+                  "Sample.Name","loc_adj","Variant.Type",
+                  "Genotype","Sample.Type"))%>%
   ungroup()%>%
   mutate(epg5=ifelse(domain=="EPG5:-:-_0",1,0))%>%
   group_by(Sample.Name,Sample.Type)%>%
@@ -555,9 +600,10 @@ dtab1 <- data1 %>% pivot_wider(names_from=count,
   ungroup()%>%
   column_to_rownames("Sample.Type")
 
+
 data2 <- out_satet%>%dplyr::select(c("snpID"))%>%
   distinct_all()%>%left_join(snp_dat3,by="snpID")%>%
-  filter(!domain%in%c("SOD1:238186:238186_0","TARDBP:−:−_2"))%>%
+  filter(!Sample.Name%in%samp)%>%
   dplyr::select(c("snpID","domain","Variant.ID",
                   "Sample.Name","loc_adj","Variant.Type","Genotype","Sample.Type"))%>%
   ungroup()%>%
@@ -580,7 +626,7 @@ dtab2 <- data2 %>% pivot_wider(names_from=count,
   ungroup()%>%
   column_to_rownames("Sample.Type")
 
-chisq.test(dtab2,simulate.p.value=TRUE)#0.0015
+chisq.test(dtab2,simulate.p.value=TRUE)#0.0010
 chisq.test(dtab1,simulate.p.value = TRUE)#0.0005
 
 library(ggpubr)
@@ -597,6 +643,7 @@ pdf("Results/EGP5_investigate.pdf",height=4,width=9)
 print(ggarrange(p1,p2))
 dev.off()
 
+#Those names are in BED format as described in \cite{gussow2016intolerance}
 see.domain <- out_satet%>%dplyr::select(c("snpID"))%>%
   distinct_all()%>%left_join(snp_dat3,by="snpID")%>%
   filter(domain=="EPG5:-:-_0")%>%

@@ -7,7 +7,7 @@ library(ggplot2)
 library(ggpubr) 
 library(foreach)
 library(doParallel)
-source("../R_Func/DATED_Func.R")
+source("../R_Func/DYNATE_Func.R")
 source("Simu_COMMON_PARS.R")
 savedatafile="/hpc/home/xl110/SATET/Results/"
 loadpop="/hpc/group/chsi/xl110/SATET/"

@@ -8,7 +8,7 @@ library(tidyverse)
 library(reshape2)
 
 
-source("../R_Func/DATED_Func.R")
+source("../R_Func/DYNATE_Func.R")
 source("../R_Func/SPA_functions.R")
 loadpop="/hpc/group/chsi/xl110/SATET/"
 savedatafile="/hpc/home/xl110/SATET/Results/"
