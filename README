@@ -15,3 +15,7 @@ Data_result_process.R: R code for visualise the data analysis results.
 In R_Func/ :
 
 This directory stores the functions for applying DATED, DC and SCANG method.
+
+In M0_power/:
+
+This directory contains a R markdown file that provides an example to illustrate the relationship between $M_0$ and testing power on the first layer.
