@@ -1,0 +1,45 @@
+---
+title: "M_0 and power"
+output: html_document
+---
+
+Suppose that there are 50 pathogenic leaves. Assume independence among RVs, if a single test has the power of $\text{pw}$, to make sure that at least one of the 50 pathogenic leaves is identified at layer 1 with probability $0.99$, we need to set $(1-\text{pw})^{50} \leq 1-0.99$. Then we now that a single RV test needs to have the power at least 
+```{r single-pwr}
+ 1-exp(log(1-0.99)/50)
+```
+
+```{r set-sample-szie}
+# 1. set sample sizes and ratios
+n1 <- 7504
+n2 <- 2634
+n <- n1+n2
+xi1 <- n1/n
+xi2 <- n2/n
+```
+
+Set the MAF in the control group. And then compute the odds ratio
+```{r calculate-odds-ratio}
+pi <- 1e-3  ## overal MAF
+pi1 <- 8.28e-4 ## MAF in the control group
+pi2 <- (pi - pi1*xi1)/xi2 ## MAF in the case group
+pi2 
+OR <- pi2*(1-pi1)/pi1/(1-pi2)
+OR
+```
+
+Now we compute the signal-to-noise ratio
+
+```{r set-d}
+table.n<- c(pi*n1, (1-pi)*n1, pi*n2, (1-pi)*n2)
+var.n <- sum(1/table.n)
+var.n
+table.a<- c(pi1*n1, (1-pi1)*n1, pi2*n2, (1-pi2)*n2)
+var.a <- sum(1/table.a)
+var.a
+```
+Then calculate the powre based on the two-sided $Z$-test. Here, $n$ is the leaf size.
+
+```{r power}
+library("pwr")
+pwr.norm.test(d = log(OR)/sqrt(var.n),  n = 1:11, sig.level = 1e-4, alternative = "two.sided")
+```
